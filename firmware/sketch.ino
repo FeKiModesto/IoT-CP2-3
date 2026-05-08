@@ -108,9 +108,6 @@ void sincronizarHorario() {
   String payload = http.getString();
   http.end();
 
-  Serial.println("JSON recebido:");
-  Serial.println(payload);
-
   DynamicJsonDocument doc(2048);
   DeserializationError erro = deserializeJson(doc, payload);
 
