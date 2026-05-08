@@ -1,0 +1,11 @@
+[wokwi]
+version = 1
+elf = "build/esp32.esp32.esp32doit-devkit-v1/http-client.ino.elf"
+firmware = "build/esp32.esp32.esp32doit-devkit-v1/http-client.ino.bin"
+
+# WiFi Configuration
+[[wifi]]
+ssid = "Wokwi-GUEST"
+password = ""
+internet = true
+channel = 6
