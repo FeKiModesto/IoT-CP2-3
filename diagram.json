@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "author": "DoorFlow",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-esp32-devkit-v1", "id": "esp32", "top": 196.7, "left": 91, "attrs": {} },
+    {
+      "type": "wokwi-lcd1602",
+      "id": "lcd",
+      "top": 35.2,
+      "left": 264.8,
+      "attrs": { "pins": "i2c", "address": "0x27" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "resGreen",
+      "top": 195.95,
+      "left": 499.2,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "resRed",
+      "top": 260,
+      "left": 500,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "resBlue",
+      "top": 320,
+      "left": 500,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "ledGreen",
+      "top": 169.2,
+      "left": 656.6,
+      "attrs": { "color": "green", "label": "Entrada" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "ledRed",
+      "top": 236.4,
+      "left": 666.2,
+      "attrs": { "color": "red", "label": "Saida" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "ledBlue",
+      "top": 313.2,
+      "left": 666.2,
+      "attrs": { "color": "blue", "label": "WiFi" }
+    }
+  ],
+  "connections": [
+    [ "esp32:TX0", "$serialMonitor:RX", "", [] ],
+    [ "esp32:RX0", "$serialMonitor:TX", "", [] ],
+    [ "lcd:VCC", "esp32:3V3", "red", [ "h-33.6", "v111.3", "v182.4" ] ],
+    [ "lcd:GND", "esp32:GND", "black", [] ],
+    [ "lcd:SDA", "esp32:D21", "blue", [ "h-52.8", "v188.6" ] ],
+    [ "lcd:SCL", "esp32:D22", "yellow", [ "h-43.2", "v150.2" ] ],
+    [ "esp32:D26", "resGreen:1", "green", [ "h-63.4", "v131", "h447.4", "v-227.1" ] ],
+    [ "resGreen:2", "ledGreen:A", "green", [ "v38.4", "h123.6" ] ],
+    [ "ledGreen:K", "esp32:GND", "black", [] ],
+    [ "esp32:D27", "resRed:1", "red", [ "h-44.2", "v111.6", "h418.6", "v-153.45" ] ],
+    [ "resRed:2", "ledRed:A", "red", [ "v22.35", "h132.4" ] ],
+    [ "ledRed:K", "esp32:GND", "black", [] ],
+    [ "esp32:D25", "resBlue:1", "blue", [ "h-73", "v150.3", "h466.6", "v-112.65" ] ],
+    [ "resBlue:2", "ledBlue:A", "blue", [ "v48.75", "h132.4" ] ],
+    [ "ledBlue:K", "esp32:GND", "black", [] ],
+    [ "esp32:GND.1", "ledRed:C", "black", [ "h470.1", "v-67.3" ] ],
+    [ "esp32:GND.1", "ledBlue:C", "black", [ "h66.9", "v19.1", "h422" ] ],
+    [ "esp32:GND.1", "ledGreen:C", "black", [ "h66.9", "v-115.3", "h412.4" ] ]
+  ],
+  "dependencies": {}
+}
