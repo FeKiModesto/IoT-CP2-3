@@ -107,3 +107,11 @@ Cada evento gera uma linha JSON no Serial Monitor (115200 baud):
 - [x] Firmware — LCD com telas rotativas
 - [x] Firmware — loop principal
 - [ ] Integração com banco de dados (fase 2)
+
+---
+
+## Integrantes
+
+- Enrico Delesporte | RM: 565760
+- Felipe Kirschner Modesto | RM: 561810
+- Vitor Dias dos Santos | RM: 565422
