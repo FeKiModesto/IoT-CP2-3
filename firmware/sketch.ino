@@ -17,7 +17,7 @@
 // URL DA API EXTERNA
 // =========================
 const char* TIME_URL =
-  "http://worldtimeapi.org/api/timezone/America/Sao_Paulo";
+  "https://timeapi.io/api/time/current/zone?timeZone=America/Sao_Paulo";
 
 // =========================
 // PINOS
@@ -108,6 +108,9 @@ void sincronizarHorario() {
   String payload = http.getString();
   http.end();
 
+  Serial.println("JSON recebido:");
+  Serial.println(payload);
+
   DynamicJsonDocument doc(2048);
   DeserializationError erro = deserializeJson(doc, payload);
 
@@ -117,46 +120,57 @@ void sincronizarHorario() {
     return;
   }
 
-  JsonVariant unixNode = doc["unixtime"];
-  if (unixNode.isNull()) {
-    Serial.println("Campo unixtime nao encontrado");
+  JsonVariant horaNode = doc["hour"];
+  JsonVariant minNode  = doc["minute"];
+  JsonVariant segNode  = doc["seconds"];
+  JsonVariant diaNode  = doc["date"];
+
+  if (horaNode.isNull()) {
+    Serial.println("Campos de horario nao encontrados");
     return;
   }
 
-  unixBase = unixNode.as<unsigned long>();
+  int hora    = horaNode.as<int>();
+  int minuto  = minNode.as<int>();
+  int segundo = segNode.as<int>();
+  String data = diaNode.as<String>();
+
+  char ts[20];
+  snprintf(ts, sizeof(ts), "%s %02d:%02d:%02d",
+    data.c_str(), hora, minuto, segundo);
+
+  Serial.print("Horario sincronizado: ");
+  Serial.println(ts);
+
+  unixBase = hora * 3600 + minuto * 60 + segundo;
   milliBase = millis();
   horarioSincronizado = true;
   ultimoSync = millis();
-
-  Serial.print("Horario sincronizado: ");
-  Serial.println(unixBase);
 }
 
 // =========================
 // UTILITARIOS DE HORARIO
 // =========================
-unsigned long getUnixAtual() {
-  if (!horarioSincronizado) return 0;
-  return unixBase + (millis() - milliBase) / 1000;
-}
-
 void formatarTimestamp(char* buf) {
-  unsigned long t = getUnixAtual();
-  if (t == 0) {
+  if (!horarioSincronizado) {
     strcpy(buf, "sem horario");
     return;
   }
-  t -= 3 * 3600;
-  struct tm* info = gmtime((time_t*)&t);
-  strftime(buf, 20, "%Y-%m-%d %H:%M:%S", info);
+  unsigned long segundosPassados = (millis() - milliBase) / 1000;
+  unsigned long totalSegundos = unixBase + segundosPassados;
+
+  int h = (totalSegundos / 3600) % 24;
+  int m = (totalSegundos % 3600) / 60;
+  int s = totalSegundos % 60;
+
+  snprintf(buf, 20, "%02d:%02d:%02d", h, m, s);
 }
 
 int getHoraAtual() {
-  unsigned long t = getUnixAtual();
-  if (t == 0) return -1;
-  t -= 3 * 3600;
-  struct tm* info = gmtime((time_t*)&t);
-  return info->tm_hour;
+  if (!horarioSincronizado) return -1;
+  unsigned long segundosPassados = (millis() - milliBase) / 1000;
+  unsigned long totalSegundos = unixBase + segundosPassados;
+  return (totalSegundos / 3600) % 24;
 }
 
 // =========================
@@ -209,11 +223,7 @@ void atualizarLCD() {
       lcd.setCursor(0, 0);
       lcd.print("Horario:");
       lcd.setCursor(0, 1);
-      if (horarioSincronizado) {
-        lcd.print(ts + 11);
-      } else {
-        lcd.print("sem sync");
-      }
+      lcd.print(ts);
       break;
     }
 
@@ -339,12 +349,10 @@ void setup() {
 void loop() {
   unsigned long agora = millis();
 
-  // re-sync horario a cada 10 min
   if (agora - ultimoSync >= INTERVALO_SYNC) {
     sincronizarHorario();
   }
 
-  // reset pelo botao
   if (digitalRead(BTN_RESET) == LOW) {
     entradas = 0;
     saidas = 0;
