@@ -49,6 +49,53 @@ unsigned long ultimoSync = 0;
 unsigned long ultimoLCD = 0;
 int tela = 0;
 
-void setup() {}
+void setup() {
+  Serial.begin(115200);
+
+  // pinos dos leds
+  pinMode(LED_VERDE, OUTPUT);
+  pinMode(LED_VERMELHO, OUTPUT);
+  pinMode(LED_AZUL, OUTPUT);
+
+  // pinos dos sensores
+  pinMode(SENSOR_A, INPUT);
+  pinMode(SENSOR_B, INPUT);
+
+  // lcd
+  lcd.init();
+  lcd.backlight();
+  lcd.setCursor(0, 0);
+  lcd.print("Iniciando...");
+
+  // conecta no wifi
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  lcd.setCursor(0, 1);
+  lcd.print("Conectando wifi");
+
+  int tentativas = 0;
+  while (WiFi.status() != WL_CONNECTED && tentativas < 20) {
+    delay(500);
+    Serial.print(".");
+    tentativas++;
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("WiFi conectado!");
+    digitalWrite(LED_AZUL, HIGH);
+    lcd.clear();
+    lcd.print("WiFi OK!");
+    delay(1000);
+  } else {
+    Serial.println("WiFi falhou, sem horario");
+    lcd.clear();
+    lcd.print("Sem WiFi");
+    delay(1500);
+  }
+
+  lcd.clear();
+  lcd.print("DoorFlow pronto");
+  delay(1000);
+  lcd.clear();
+}
 
 void loop() {}
