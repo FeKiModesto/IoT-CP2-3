@@ -53,9 +53,7 @@ Diagrama completo de ligações em [`hardware/wiring_diagram.md`](hardware/wirin
  
 O projeto pode ser simulado no Wokwi sem precisar do hardware físico.
  
-[![Simular no Wokwi](https://img.shields.io/badge/Simular-Wokwi-blue?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xMiAyQzYuNDggMiAyIDYuNDggMiAxMnM0LjQ4IDEwIDEwIDEwIDEwLTQuNDggMTAtMTBTMTcuNTIgMiAxMiAyem0tMiAxNGwtNC00IDEuNDEtMS40MUwxMCAxMy4xN2w2LjU5LTYuNTlMMTggOGwtOCA4eiIvPjwvc3ZnPg==)](LINK_DO_PROJETO_WOKWI)
- 
-> Substitua `LINK_DO_PROJETO_WOKWI` pela URL do seu projeto após salvar no Wokwi.
+[![Simular no Wokwi](https://img.shields.io/badge/Simular-Wokwi-blue?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xMiAyQzYuNDggMiAyIDYuNDggMiAxMnM0LjQ4IDEwIDEwIDEwIDEwLTQuNDggMTAtMTBTMTcuNTIgMiAxMiAyem0tMiAxNGwtNC00IDEuNDEtMS40MUwxMCAxMy4xN2w2LjU5LTYuNTlMMTggOGwtOCA4eiIvPjwvc3ZnPg==)](https://wokwi.com/projects/463409131964863489)  
  
 ---
  
