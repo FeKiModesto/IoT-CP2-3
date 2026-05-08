@@ -96,15 +96,26 @@ Cada evento gera uma linha JSON no Serial Monitor (115200 baud):
 ---
  
 ## Roadmap
- 
+
 - [x] Circuito e pinagem definidos
 - [x] Simulação no Wokwi
-- [ ] Firmware — constantes e variáveis globais
-- [ ] Firmware — setup e inicialização
-- [ ] Firmware — sincronização de horário
-- [ ] Firmware — máquina de estados dos sensores
-- [ ] Firmware — log de eventos
-- [ ] Firmware — LCD com telas rotativas
-- [ ] Firmware — loop principal
+- [x] Firmware — constantes e variáveis globais
+- [x] Firmware — setup e inicialização
+- [x] Firmware — sincronização de horário
+- [x] Firmware — máquina de estados dos sensores
+- [x] Firmware — log de eventos
+- [x] Firmware — LCD com telas rotativas
+- [x] Firmware — loop principal
 - [ ] Integração com banco de dados (fase 2)
  
+## ⚠️ Sobre a simulação
+
+O circuito disponível no Wokwi é uma representação simplificada do projeto,
+criada para fins de demonstração e validação da lógica de funcionamento.
+
+Na simulação, os sensores PIR foram substituídos por uma rotina automática
+no próprio código, já que o ambiente virtual não permite simular detecção
+de movimento de forma fiel ao hardware real.
+
+O projeto físico será desenvolvido com os componentes reais descritos
+em `hardware/wiring_diagram.md`.
