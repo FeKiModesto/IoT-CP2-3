@@ -6,86 +6,135 @@
 #include <ArduinoJson.h>
 #include <LiquidCrystal_I2C.h>
 
-// wifi
-const char* WIFI_SSID = "SEU_WIFI";
-const char* WIFI_PASSWORD = "SUA_SENHA";
+// =========================
+// CONFIGURACAO DO WIFI
+// =========================
+#define WIFI_SSID "Wokwi-GUEST"
+#define WIFI_PASSWORD ""
+#define WIFI_CHANNEL 6
 
-// pinos dos componentes
-#define SENSOR_A 18
-#define SENSOR_B 19
-#define LED_VERDE 26
-#define LED_VERMELHO 27
-#define LED_AZUL 25
+// =========================
+// URL DA API EXTERNA
+// =========================
+const char* TIME_URL =
+  "http://worldtimeapi.org/api/timezone/America/Sao_Paulo";
 
-// tempos
+// =========================
+// PINOS
+// =========================
+#define SENSOR_A 13
+#define SENSOR_B 14
+#define LED_ENTRADA 26
+#define LED_SAIDA 27
+#define BTN_RESET 32
+
+// =========================
+// CONSTANTES
+// =========================
 #define TIMEOUT_SEQUENCIA 3000
-#define INTERVALO_SYNC 600000
 #define DEBOUNCE 300
-#define INTERVALO_SIMULACAO 4000
+#define INTERVALO_SYNC 600000
 
-// lcd
+// =========================
+// LCD
+// =========================
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
-// contadores
+// =========================
+// VARIAVEIS
+// =========================
 int entradas = 0;
 int saidas = 0;
 int porHora[24] = {0};
 
-// estado dos sensores
 enum Estado { IDLE, A_ATIVO, B_ATIVO };
 Estado estadoAtual = IDLE;
 unsigned long tempoUltimoSensor = 0;
 
-// debounce
 unsigned long ultimoA = 0;
 unsigned long ultimoB = 0;
 
-// horario
 unsigned long unixBase = 0;
 unsigned long milliBase = 0;
 bool horarioSincronizado = false;
 unsigned long ultimoSync = 0;
 
-// lcd
 unsigned long ultimoLCD = 0;
 int tela = 0;
 
-// simulacao
-unsigned long ultimaSimulacao = 0;
-int etapaSimulacao = 0;
+// =========================
+// CONECTA NO WIFI
+// =========================
+void connectWiFi() {
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD, WIFI_CHANNEL);
+  Serial.print("Conectando ao WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(100);
+    Serial.print(".");
+  }
+  Serial.println();
+  Serial.println("WiFi conectado!");
+  Serial.print("IP: ");
+  Serial.println(WiFi.localIP());
+}
 
-bool sincronizarHorario() {
-  if (WiFi.status() != WL_CONNECTED) return false;
+void ensureWiFiConnected() {
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("WiFi desconectado. Reconectando...");
+    connectWiFi();
+  }
+}
+
+// =========================
+// SINCRONIZA HORARIO
+// =========================
+void sincronizarHorario() {
+  ensureWiFiConnected();
 
   HTTPClient http;
-  http.begin("http://worldtimeapi.org/api/timezone/America/Sao_Paulo");
-  http.setTimeout(8000);
+  Serial.println("\n--- SINCRONIZANDO HORARIO ---");
+  http.begin(TIME_URL);
 
-  int code = http.GET();
-  if (code != 200) {
+  int httpCode = http.GET();
+  Serial.print("Status HTTP: ");
+  Serial.println(httpCode);
+
+  if (httpCode <= 0) {
+    Serial.println("Erro na requisicao");
     http.end();
-    return false;
+    return;
   }
 
   String payload = http.getString();
   http.end();
 
-  StaticJsonDocument<512> doc;
+  DynamicJsonDocument doc(2048);
   DeserializationError erro = deserializeJson(doc, payload);
-  if (erro) return false;
 
-  unsigned long unix = doc["unixtime"].as<unsigned long>();
-  if (unix == 0) return false;
+  if (erro) {
+    Serial.print("Erro ao interpretar JSON: ");
+    Serial.println(erro.c_str());
+    return;
+  }
 
-  unixBase = unix;
+  JsonVariant unixNode = doc["unixtime"];
+  if (unixNode.isNull()) {
+    Serial.println("Campo unixtime nao encontrado");
+    return;
+  }
+
+  unixBase = unixNode.as<unsigned long>();
   milliBase = millis();
   horarioSincronizado = true;
   ultimoSync = millis();
 
-  Serial.println("horario sincronizado: " + String(unix));
-  return true;
+  Serial.print("Horario sincronizado: ");
+  Serial.println(unixBase);
 }
 
+// =========================
+// UTILITARIOS DE HORARIO
+// =========================
 unsigned long getUnixAtual() {
   if (!horarioSincronizado) return 0;
   return unixBase + (millis() - milliBase) / 1000;
@@ -110,6 +159,9 @@ int getHoraAtual() {
   return info->tm_hour;
 }
 
+// =========================
+// REGISTRA EVENTO
+// =========================
 void registrarEvento(const char* tipo) {
   char ts[20];
   formatarTimestamp(ts);
@@ -129,6 +181,9 @@ void registrarEvento(const char* tipo) {
   Serial.println(entradas - saidas);
 }
 
+// =========================
+// ATUALIZA LCD
+// =========================
 void atualizarLCD() {
   if (millis() - ultimoLCD < 3000) return;
   ultimoLCD = millis();
@@ -187,78 +242,121 @@ void atualizarLCD() {
   }
 }
 
-void simularPessoa() {
+// =========================
+// VERIFICA SENSORES
+// =========================
+void verificarSensores() {
   unsigned long agora = millis();
-  if (agora - ultimaSimulacao < INTERVALO_SIMULACAO) return;
-  ultimaSimulacao = agora;
 
-  if (etapaSimulacao % 2 == 0) {
-    Serial.println("[sim] entrada");
-    entradas++;
-    registrarEvento("ENTRADA");
-    digitalWrite(LED_VERDE, HIGH);
-    delay(1500);
-    digitalWrite(LED_VERDE, LOW);
-  } else {
-    Serial.println("[sim] saida");
-    saidas++;
-    registrarEvento("SAIDA");
-    digitalWrite(LED_VERMELHO, HIGH);
-    delay(1500);
-    digitalWrite(LED_VERMELHO, LOW);
+  static bool anteriorA = LOW;
+  static bool anteriorB = LOW;
+
+  bool leituraA = digitalRead(SENSOR_A);
+  bool leituraB = digitalRead(SENSOR_B);
+
+  bool trigA = (leituraA == HIGH && anteriorA == LOW) && (agora - ultimoA > DEBOUNCE);
+  bool trigB = (leituraB == HIGH && anteriorB == LOW) && (agora - ultimoB > DEBOUNCE);
+
+  if (trigA) ultimoA = agora;
+  if (trigB) ultimoB = agora;
+
+  anteriorA = leituraA;
+  anteriorB = leituraB;
+
+  if (estadoAtual != IDLE && (agora - tempoUltimoSensor > TIMEOUT_SEQUENCIA)) {
+    Serial.println("timeout, resetando sequencia");
+    estadoAtual = IDLE;
   }
 
-  etapaSimulacao++;
+  switch (estadoAtual) {
+    case IDLE:
+      if (trigA) {
+        estadoAtual = A_ATIVO;
+        tempoUltimoSensor = agora;
+        Serial.println("sensor A ativado");
+      } else if (trigB) {
+        estadoAtual = B_ATIVO;
+        tempoUltimoSensor = agora;
+        Serial.println("sensor B ativado");
+      }
+      break;
+
+    case A_ATIVO:
+      if (trigB) {
+        entradas++;
+        registrarEvento("ENTRADA");
+        digitalWrite(LED_ENTRADA, HIGH);
+        delay(500);
+        digitalWrite(LED_ENTRADA, LOW);
+        estadoAtual = IDLE;
+      }
+      break;
+
+    case B_ATIVO:
+      if (trigA) {
+        saidas++;
+        registrarEvento("SAIDA");
+        digitalWrite(LED_SAIDA, HIGH);
+        delay(500);
+        digitalWrite(LED_SAIDA, LOW);
+        estadoAtual = IDLE;
+      }
+      break;
+  }
 }
 
+// =========================
+// SETUP
+// =========================
 void setup() {
   Serial.begin(115200);
 
-  pinMode(LED_VERDE, OUTPUT);
-  pinMode(LED_VERMELHO, OUTPUT);
-  pinMode(LED_AZUL, OUTPUT);
-
+  pinMode(LED_ENTRADA, OUTPUT);
+  pinMode(LED_SAIDA, OUTPUT);
   pinMode(SENSOR_A, INPUT);
   pinMode(SENSOR_B, INPUT);
+  pinMode(BTN_RESET, INPUT_PULLUP);
 
   lcd.init();
   lcd.backlight();
   lcd.setCursor(0, 0);
+  lcd.print("DoorFlow");
+  lcd.setCursor(0, 1);
   lcd.print("Iniciando...");
 
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  lcd.setCursor(0, 1);
-  lcd.print("Conectando wifi");
-
-  int tentativas = 0;
-  while (WiFi.status() != WL_CONNECTED && tentativas < 20) {
-    delay(500);
-    Serial.print(".");
-    tentativas++;
-  }
-
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("WiFi conectado!");
-    digitalWrite(LED_AZUL, HIGH);
-    lcd.clear();
-    lcd.print("WiFi OK!");
-    delay(1000);
-    sincronizarHorario();
-  } else {
-    Serial.println("WiFi falhou, sem horario");
-    lcd.clear();
-    lcd.print("Sem WiFi");
-    delay(1500);
-  }
+  connectWiFi();
+  sincronizarHorario();
 
   lcd.clear();
-  lcd.print("DoorFlow pronto");
+  lcd.print("Pronto!");
   delay(1000);
   lcd.clear();
 }
 
+// =========================
+// LOOP
+// =========================
 void loop() {
-  simularPessoa();
+  unsigned long agora = millis();
+
+  // re-sync horario a cada 10 min
+  if (agora - ultimoSync >= INTERVALO_SYNC) {
+    sincronizarHorario();
+  }
+
+  // reset pelo botao
+  if (digitalRead(BTN_RESET) == LOW) {
+    entradas = 0;
+    saidas = 0;
+    memset(porHora, 0, sizeof(porHora));
+    Serial.println("contadores resetados");
+    lcd.clear();
+    lcd.print("Reset!");
+    delay(1000);
+    lcd.clear();
+  }
+
+  verificarSensores();
   atualizarLCD();
   delay(20);
 }
