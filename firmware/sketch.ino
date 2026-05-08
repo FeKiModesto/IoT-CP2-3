@@ -49,25 +49,77 @@ unsigned long ultimoSync = 0;
 unsigned long ultimoLCD = 0;
 int tela = 0;
 
+bool sincronizarHorario() {
+  if (WiFi.status() != WL_CONNECTED) return false;
+
+  HTTPClient http;
+  http.begin("http://worldtimeapi.org/api/timezone/America/Sao_Paulo");
+  http.setTimeout(8000);
+
+  int code = http.GET();
+  if (code != 200) {
+    http.end();
+    return false;
+  }
+
+  String payload = http.getString();
+  http.end();
+
+  StaticJsonDocument<512> doc;
+  DeserializationError erro = deserializeJson(doc, payload);
+  if (erro) return false;
+
+  unsigned long unix = doc["unixtime"].as<unsigned long>();
+  if (unix == 0) return false;
+
+  unixBase = unix;
+  milliBase = millis();
+  horarioSincronizado = true;
+  ultimoSync = millis();
+
+  Serial.println("horario sincronizado: " + String(unix));
+  return true;
+}
+
+unsigned long getUnixAtual() {
+  if (!horarioSincronizado) return 0;
+  return unixBase + (millis() - milliBase) / 1000;
+}
+
+void formatarTimestamp(char* buf) {
+  unsigned long t = getUnixAtual();
+  if (t == 0) {
+    strcpy(buf, "sem horario");
+    return;
+  }
+  t -= 3 * 3600;
+  struct tm* info = gmtime((time_t*)&t);
+  strftime(buf, 20, "%Y-%m-%d %H:%M:%S", info);
+}
+
+int getHoraAtual() {
+  unsigned long t = getUnixAtual();
+  if (t == 0) return -1;
+  t -= 3 * 3600;
+  struct tm* info = gmtime((time_t*)&t);
+  return info->tm_hour;
+}
+
 void setup() {
   Serial.begin(115200);
 
-  // pinos dos leds
   pinMode(LED_VERDE, OUTPUT);
   pinMode(LED_VERMELHO, OUTPUT);
   pinMode(LED_AZUL, OUTPUT);
 
-  // pinos dos sensores
   pinMode(SENSOR_A, INPUT);
   pinMode(SENSOR_B, INPUT);
 
-  // lcd
   lcd.init();
   lcd.backlight();
   lcd.setCursor(0, 0);
   lcd.print("Iniciando...");
 
-  // conecta no wifi
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   lcd.setCursor(0, 1);
   lcd.print("Conectando wifi");
@@ -85,6 +137,7 @@ void setup() {
     lcd.clear();
     lcd.print("WiFi OK!");
     delay(1000);
+    sincronizarHorario();
   } else {
     Serial.println("WiFi falhou, sem horario");
     lcd.clear();
