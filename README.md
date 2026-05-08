@@ -2,8 +2,6 @@
  
 Sistema de contagem direcional de pessoas com ESP32. Detecta entradas e saídas através de dois sensores PIR posicionados em sequência na porta — se a pessoa ativa o Sensor A e depois o Sensor B, é uma entrada; B depois A, é uma saída.
  
-> Nome provisório até decisão do grupo.
- 
 ---
  
 ## Como funciona
