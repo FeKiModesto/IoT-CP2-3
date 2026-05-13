@@ -9,9 +9,9 @@ CORS(app)
 # =========================
 # CONFIGURACAO DO BANCO
 # =========================
-DB_USER     = "SEU_USUARIO"
-DB_PASSWORD = "SUA_SENHA"
-DB_DSN      = "localhost/XEPDB1"  # ajusta se necessário
+DB_USER     = "RM561810"
+DB_PASSWORD = "260407"
+DB_DSN      = "oracle.fiap.com.br:1521/orcl"
 
 def get_connection():
     return oracledb.connect(
