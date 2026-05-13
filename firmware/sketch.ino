@@ -185,6 +185,7 @@ void registrarEvento(const char* tipo) {
   int hora = getHoraAtual();
   if (hora >= 0) porHora[hora]++;
 
+  // log no serial
   Serial.print("{\"tipo\":\"");
   Serial.print(tipo);
   Serial.print("\",\"timestamp\":\"");
@@ -195,6 +196,27 @@ void registrarEvento(const char* tipo) {
   Serial.print(saidas);
   Serial.print(",\"saldo\":");
   Serial.println(entradas - saidas);
+
+  // envia para a API
+  ensureWiFiConnected();
+
+  HTTPClient http;
+  http.begin(API_URL);
+  http.addHeader("Content-Type", "application/json");
+
+  String body = "{";
+  body += "\"tipo\":\"" + String(tipo) + "\",";
+  body += "\"timestamp\":\"" + String(ts) + "\",";
+  body += "\"entradas\":" + String(entradas) + ",";
+  body += "\"saidas\":" + String(saidas) + ",";
+  body += "\"saldo\":" + String(entradas - saidas);
+  body += "}";
+
+  int httpCode = http.POST(body);
+  Serial.print("API status: ");
+  Serial.println(httpCode);
+
+  http.end();
 }
 
 // =========================
