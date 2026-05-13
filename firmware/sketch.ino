@@ -36,6 +36,11 @@ const char* TIME_URL =
 #define INTERVALO_SYNC 600000
 
 // =========================
+// URL DA API PROPRIA
+// =========================
+const char* API_URL = "https://doorflow-api.onrender.com/evento";
+
+// =========================
 // LCD
 // =========================
 LiquidCrystal_I2C lcd(0x27, 16, 2);
