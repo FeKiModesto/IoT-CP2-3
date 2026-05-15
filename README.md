@@ -13,26 +13,30 @@ O protótipo simulado no Wokwi serve de base para a confecção do projeto real 
 ---
 
 ## Como funciona
-
-[ Lado interno ]  [ Porta ]  [ Lado externo ]Sensor A   ←————————————→   Sensor BA → B  =  ENTRADA
+```
+[ Lado interno ]  [ Porta ]  [ Lado externo ]
+Sensor A   ←————————————→   Sensor B
+A → B  =  ENTRADA
 B → A  =  SAÍDA
+```
 
-O ESP32 sincroniza o horário real via [TimeAPI](https://timeapi.io) e registra cada evento com timestamp. Os dados ficam acumulados por hora para calcular o horário de pico de movimentação.
+O ESP32 sincroniza o horário real via [TimeAPI](https://timeapi.io) e registra cada evento com timestamp completo (data + hora). Os dados são enviados para a API própria e armazenados no banco de dados Oracle. As contagens ficam acumuladas por hora para calcular o horário de pico de movimentação.
 
 ---
 
 ## Funcionalidades
 
 - Detecção direcional de entrada e saída
-- Timestamp real via TimeAPI (UTC-3 / Brasília)
+- Timestamp real com data completa via TimeAPI (UTC-3 / Brasília)
 - Re-sincronização automática de horário a cada 10 minutos
+- Envio automático de eventos para API REST com retry em caso de falha
+- Armazenamento dos eventos no banco de dados Oracle
 - LCD 16x2 com 3 telas rotativas:
   - Contadores de entrada, saída e saldo
   - Horário atual
   - Hora de pico do dia
 - LEDs de feedback para cada evento
 - Log em formato JSON via Serial Monitor
-- Estrutura preparada para integração futura com banco de dados
 
 ---
 
@@ -58,9 +62,45 @@ O projeto pode ser simulado no Wokwi sem precisar do hardware físico.
 
 ---
 
-## Estrutura do repositório
+## API
 
+A API REST foi desenvolvida em Python com Flask e está hospedada no Render.
+
+**Base URL:** `https://doorflow-api.onrender.com`
+
+| Método | Endpoint | Descrição |
+|---|---|---|
+| GET | `/` | Status da API |
+| POST | `/evento` | Registra um evento de entrada ou saída |
+| GET | `/eventos` | Lista todos os eventos registrados |
+| GET | `/pico` | Retorna a hora de maior movimentação |
+
+**Exemplo de payload enviado pelo ESP32:**
+```json
+{
+  "tipo": "ENTRADA",
+  "timestamp": "2026-05-15 07:07:34",
+  "entradas": 1,
+  "saidas": 0,
+  "saldo": 1
+}
+```
+
+---
+
+## Banco de dados
+
+Os eventos são armazenados no Oracle Database da FIAP. A tabela principal `eventos` guarda tipo, timestamp completo, contadores e saldo de cada detecção.
+
+---
+
+## Estrutura do repositório
+```
 IoT-CP2-3/
+├── api/
+│   ├── app.py              # API Flask
+│   ├── requirements.txt    # dependências Python
+│   └── Procfile            # configuração do Render
 ├── hardware/
 │   └── wiring_diagram.md   # pinagem e lista de componentes
 ├── firmware/
@@ -68,6 +108,7 @@ IoT-CP2-3/
 ├── http-client/            # projeto base fornecido pelo professor
 ├── diagram.json            # circuito para simulação no Wokwi
 └── README.md
+```
 
 ---
 
@@ -89,8 +130,8 @@ Instalar via Arduino IDE (Sketch → Include Library → Manage Libraries):
 Cada evento gera uma linha JSON no Serial Monitor (115200 baud):
 
 ```json
-{"tipo":"ENTRADA","timestamp":"19:31:36","entradas":1,"saidas":0,"saldo":1}
-{"tipo":"SAIDA","timestamp":"19:35:44","entradas":1,"saidas":1,"saldo":0}
+{"tipo":"ENTRADA","timestamp":"2026-05-15 07:07:34","entradas":1,"saidas":0,"saldo":1}
+{"tipo":"SAIDA","timestamp":"2026-05-15 07:07:48","entradas":1,"saidas":1,"saldo":0}
 ```
 
 ---
@@ -103,10 +144,12 @@ Cada evento gera uma linha JSON no Serial Monitor (115200 baud):
 - [x] Firmware — setup e inicialização
 - [x] Firmware — sincronização de horário via TimeAPI
 - [x] Firmware — máquina de estados dos sensores
-- [x] Firmware — log de eventos
+- [x] Firmware — log de eventos com timestamp completo
 - [x] Firmware — LCD com telas rotativas
 - [x] Firmware — loop principal
-- [ ] Integração com banco de dados (fase 2)
+- [x] API REST em Flask hospedada no Render
+- [x] Integração com banco de dados Oracle
+- [x] Desenvolvimento do projeto físico
 
 ---
 
