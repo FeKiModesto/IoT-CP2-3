@@ -14,10 +14,10 @@
 #define WIFI_CHANNEL 6
 
 // =========================
-// URL DA API EXTERNA
+// URL DAS APIS
 // =========================
-const char* TIME_URL =
-  "https://timeapi.io/api/time/current/zone?timeZone=America/Sao_Paulo";
+const char* TIME_URL = "https://timeapi.io/api/time/current/zone?timeZone=America/Sao_Paulo";
+const char* API_URL  = "https://doorflow-api.onrender.com/evento";
 
 // =========================
 // PINOS
@@ -34,11 +34,6 @@ const char* TIME_URL =
 #define TIMEOUT_SEQUENCIA 3000
 #define DEBOUNCE 300
 #define INTERVALO_SYNC 600000
-
-// =========================
-// URL DA API PROPRIA
-// =========================
-const char* API_URL = "https://doorflow-api.onrender.com/evento";
 
 // =========================
 // LCD
@@ -63,6 +58,8 @@ unsigned long unixBase = 0;
 unsigned long milliBase = 0;
 bool horarioSincronizado = false;
 unsigned long ultimoSync = 0;
+
+char dataAtual[12] = "";
 
 unsigned long ultimoLCD = 0;
 int tela = 0;
@@ -125,7 +122,6 @@ void sincronizarHorario() {
   JsonVariant horaNode = doc["hour"];
   JsonVariant minNode  = doc["minute"];
   JsonVariant segNode  = doc["seconds"];
-  JsonVariant diaNode  = doc["date"];
 
   if (horaNode.isNull()) {
     Serial.println("Campos de horario nao encontrados");
@@ -135,14 +131,16 @@ void sincronizarHorario() {
   int hora    = horaNode.as<int>();
   int minuto  = minNode.as<int>();
   int segundo = segNode.as<int>();
-  String data = diaNode.as<String>();
+  int ano     = doc["year"].as<int>();
+  int mes     = doc["month"].as<int>();
+  int dia     = doc["day"].as<int>();
 
-  char ts[20];
-  snprintf(ts, sizeof(ts), "%s %02d:%02d:%02d",
-    data.c_str(), hora, minuto, segundo);
+  snprintf(dataAtual, sizeof(dataAtual), "%04d-%02d-%02d", ano, mes, dia);
 
   Serial.print("Horario sincronizado: ");
-  Serial.println(ts);
+  Serial.print(dataAtual);
+  Serial.print(" ");
+  Serial.printf("%02d:%02d:%02d\n", hora, minuto, segundo);
 
   unixBase = hora * 3600 + minuto * 60 + segundo;
   milliBase = millis();
@@ -165,7 +163,7 @@ void formatarTimestamp(char* buf) {
   int m = (totalSegundos % 3600) / 60;
   int s = totalSegundos % 60;
 
-  snprintf(buf, 20, "%02d:%02d:%02d", h, m, s);
+  snprintf(buf, 25, "%s %02d:%02d:%02d", dataAtual, h, m, s);
 }
 
 int getHoraAtual() {
@@ -179,7 +177,7 @@ int getHoraAtual() {
 // REGISTRA EVENTO
 // =========================
 void registrarEvento(const char* tipo) {
-  char ts[20];
+  char ts[25];
   formatarTimestamp(ts);
 
   int hora = getHoraAtual();
@@ -197,12 +195,8 @@ void registrarEvento(const char* tipo) {
   Serial.print(",\"saldo\":");
   Serial.println(entradas - saidas);
 
-  // envia para a API
+  // envia para a API com retry
   ensureWiFiConnected();
-
-  HTTPClient http;
-  http.begin(API_URL);
-  http.addHeader("Content-Type", "application/json");
 
   String body = "{";
   body += "\"tipo\":\"" + String(tipo) + "\",";
@@ -212,11 +206,26 @@ void registrarEvento(const char* tipo) {
   body += "\"saldo\":" + String(entradas - saidas);
   body += "}";
 
-  int httpCode = http.POST(body);
-  Serial.print("API status: ");
-  Serial.println(httpCode);
+  int tentativas = 0;
+  int httpCode = 0;
 
-  http.end();
+  while (tentativas < 3 && httpCode != 201) {
+    HTTPClient http;
+    http.begin(API_URL);
+    http.addHeader("Content-Type", "application/json");
+    http.setTimeout(10000);
+    httpCode = http.POST(body);
+    http.end();
+
+    Serial.print("API status: ");
+    Serial.println(httpCode);
+
+    if (httpCode != 201) {
+      Serial.println("Tentando novamente...");
+      delay(3000);
+    }
+    tentativas++;
+  }
 }
 
 // =========================
@@ -242,12 +251,17 @@ void atualizarLCD() {
       break;
 
     case 1: {
-      char ts[20];
+      char ts[25];
       formatarTimestamp(ts);
       lcd.setCursor(0, 0);
       lcd.print("Horario:");
       lcd.setCursor(0, 1);
-      lcd.print(ts);
+      // exibe so HH:MM:SS no LCD
+      if (horarioSincronizado) {
+        lcd.print(ts + 11);
+      } else {
+        lcd.print("sem sync");
+      }
       break;
     }
 
