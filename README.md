@@ -149,7 +149,7 @@ Cada evento gera uma linha JSON no Serial Monitor (115200 baud):
 - [x] Firmware — loop principal
 - [x] API REST em Flask hospedada no Render
 - [x] Integração com banco de dados Oracle
-- [x] Desenvolvimento do projeto físico
+- [ ] Desenvolvimento do projeto físico
 
 ---
 
