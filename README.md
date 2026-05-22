@@ -92,6 +92,27 @@ A API REST foi desenvolvida em Python com Flask e está hospedada no Render.
 
 Os eventos são armazenados no Oracle Database da FIAP. A tabela principal `eventos` guarda tipo, timestamp completo, contadores e saldo de cada detecção.
 
+Como que fazia rodar o banco de dados mesmo? Para ver as infos?10:55Claude respondeu: No SQL Developer, abre uma nova aba de SQL e roda:No SQL Developer, abre uma nova aba de SQL e roda:
+```bash
+SELECT * FROM eventos ORDER BY criado_em DESC;
+```
+O **ORDER BY** criado_em DESC coloca os mais recentes primeiro, fica mais fácil de visualizar.
+
+Se quiser ver só as entradas:
+```bash
+SELECT * FROM eventos WHERE tipo = 'ENTRADA' ORDER BY criado_em DESC;
+```
+
+Só as saídas:
+```bash
+SELECT * FROM eventos WHERE tipo = 'SAIDA' ORDER BY criado_em DESC;
+```
+
+E para ver a hora de pico:
+```bash
+SELECT * FROM contagem_por_hora ORDER BY total DESC;
+```
+
 ---
 
 ## Estrutura do repositório
